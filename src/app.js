@@ -87,6 +87,15 @@ app.use('/api/audit', auditRoutes);
 // Error Handling Middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
+    
+    // Handle Multer errors
+    if (err.name === 'MulterError') {
+        return res.status(400).json({ 
+            message: 'File upload error', 
+            error: err.message 
+        });
+    }
+
     res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 

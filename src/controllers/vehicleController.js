@@ -2,6 +2,18 @@ import Vehicle from '../models/Vehicle.js';
 import EntryExitLog from '../models/EntryExitLog.js';
 import Yard from '../models/Yard.js';
 import Client from '../models/Client.js';
+import ImageKit from 'imagekit';
+import path from 'path';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// Initialize ImageKit
+const imagekit = new ImageKit({
+    publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+    privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
+});
 
 // @desc    Get all vehicles
 // @route   GET /api/vehicles
@@ -388,26 +400,37 @@ export const uploadVehiclePdfs = async (req, res) => {
             return res.status(404).json({ message: 'Vehicle not found' });
         }
 
-        // Files should be uploaded via multer middleware
-        // req.files.hindiPdf and req.files.englishPdf
-        const hindiPdfPath = req.files?.hindiPdf?.[0]?.path;
-        const englishPdfPath = req.files?.englishPdf?.[0]?.path;
+        // Files uploaded via memoryStorage will be in req.files[name][0].buffer
+        const hindiPdfFile = req.files?.hindiPdf?.[0];
+        const englishPdfFile = req.files?.englishPdf?.[0];
 
-        if (hindiPdfPath) {
-            vehicle.entryPdfHindi = hindiPdfPath.replace(/\\/g, '/');
+        if (hindiPdfFile) {
+            const uploadResponse = await imagekit.upload({
+                file: hindiPdfFile.buffer,
+                fileName: `entry_hindi_${vehicle._id}${path.extname(hindiPdfFile.originalname)}`,
+                folder: '/yms_pdfs'
+            });
+            vehicle.entryPdfHindi = uploadResponse.url;
         }
-        if (englishPdfPath) {
-            vehicle.entryPdfEnglish = englishPdfPath.replace(/\\/g, '/');
+
+        if (englishPdfFile) {
+            const uploadResponse = await imagekit.upload({
+                file: englishPdfFile.buffer,
+                fileName: `entry_english_${vehicle._id}${path.extname(englishPdfFile.originalname)}`,
+                folder: '/yms_pdfs'
+            });
+            vehicle.entryPdfEnglish = uploadResponse.url;
         }
 
         await vehicle.save();
 
         res.json({
-            message: 'PDFs uploaded successfully',
+            message: 'PDFs uploaded to ImageKit successfully',
             entryPdfHindi: vehicle.entryPdfHindi,
             entryPdfEnglish: vehicle.entryPdfEnglish
         });
     } catch (error) {
+        console.error("PDF Upload Error:", error);
         res.status(500).json({ message: error.message });
     }
 };

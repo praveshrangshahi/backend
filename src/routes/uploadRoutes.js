@@ -24,18 +24,11 @@ router.post('/', upload.single('image'), async (req, res) => {
 
         // If in production or ImageKit config is present, upload to ImageKit
         if (process.env.NODE_ENV === 'production' || process.env.IMAGEKIT_PRIVATE_KEY) {
-            const fileBuffer = fs.readFileSync(req.file.path);
-            
             const uploadResponse = await imagekit.upload({
-                file: fileBuffer,
-                fileName: req.file.filename,
+                file: req.file.buffer, // Use buffer from memoryStorage
+                fileName: `${req.file.fieldname}-${Date.now()}${path.extname(req.file.originalname)}`,
                 folder: '/yms_uploads'
             });
-
-            // Delete local file after upload to ImageKit
-            if (fs.existsSync(req.file.path)) {
-                fs.unlinkSync(req.file.path);
-            }
 
             return res.json({
                 message: 'Image uploaded to ImageKit',
