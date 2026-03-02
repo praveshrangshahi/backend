@@ -23,7 +23,7 @@ const seedDatabase = async () => {
             const hashedPassword = await bcrypt.hash('admin123', 10);
             const admin = await User.create({
                 name: 'Super Admin',
-                email: 'admin@jaynt.com',
+                email: 'admin@jayant.com',
                 passwordHash: hashedPassword,
                 role: 'SUPER_ADMIN',
                 phone: '9876543210',
@@ -46,7 +46,7 @@ const seedDatabase = async () => {
                     address: 'Plot No. 123, Industrial Area, Mumbai - 400001'
                 },
                 contactNumber: '022-12345678',
-                email: 'mainyard@jaynt.com',
+                email: 'mainyard@jayant.com',
                 capacity: 500
             });
             console.log('✅ Main Yard created:', mainYard.name);
@@ -105,7 +105,7 @@ const seedDatabase = async () => {
             const hashedPassword = await bcrypt.hash('operator123', 10);
             const operator = await User.create({
                 name: 'Yard Operator',
-                email: 'operator@jaynt.com',
+                email: 'operator@jayant.com',
                 passwordHash: hashedPassword,
                 role: 'GATE_STAFF',
                 phone: '9876543220',
