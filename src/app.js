@@ -24,7 +24,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
     origin: ['https://jayantassociate.vercel.app', 'http://localhost:3000', 'http://localhost:5173'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-branch-id'],
     credentials: true
 }));
