@@ -1,26 +1,36 @@
 import Client from '../models/Client.js';
+import Vehicle from '../models/Vehicle.js';
 
-// @desc    Get all clients
-// @route   GET /api/clients
-// @access  Private
 export const getClients = async (req, res) => {
     try {
-        console.log("Fetching clients for user:", req.user._id, "Role:", req.user.role);
         let branchFilter = {};
-        if (req.query.branchId) {
+        if (req.query.branchId && req.query.branchId !== 'null' && req.query.branchId !== 'undefined') {
             branchFilter = { branchId: req.query.branchId };
         }
-        // Removed mandatory branch filtering for GATE_STAFF/BRANCH_MANAGER
 
-        console.log("Executing query with filter:", branchFilter);
         const clients = await Client.find(branchFilter)
             .populate('branchId', 'name city')
             .sort({ createdAt: -1 });
 
-        console.log("Clients found:", clients.length);
-        res.json(clients);
+        // Fetch vehicle counts for each client
+        const clientNames = clients.map(c => c.matchName);
+        const vehicleCounts = await Vehicle.aggregate([
+            { $match: { client: { $in: clientNames }, status: 'PARKED' } },
+            { $group: { _id: '$client', count: { $sum: 1 } } }
+        ]);
+
+        const countMap = vehicleCounts.reduce((acc, curr) => {
+            acc[curr._id] = curr.count;
+            return acc;
+        }, {});
+
+        const clientsWithCounts = clients.map(client => ({
+            ...client.toObject(),
+            vehicleCount: countMap[client.matchName] || 0
+        }));
+
+        res.json(clientsWithCounts);
     } catch (error) {
-        console.error("Error fetching clients:", error);
         res.status(500).json({ message: error.message });
     }
 };

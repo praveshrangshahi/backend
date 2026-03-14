@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Vehicle from '../models/Vehicle.js';
 import EntryExitLog from '../models/EntryExitLog.js';
 import Yard from '../models/Yard.js';
@@ -8,27 +9,23 @@ import User from '../models/User.js';
 // @access  Private
 export const getDashboardStats = async (req, res) => {
     try {
-        // Filter by Branch/Yard
         let yardFilter = {};
         if (req.user.role === 'SUPER_ADMIN') {
-            if (req.query.branchId) {
-                yardFilter = { yardId: req.query.branchId };
+            if (req.query.branchId && req.query.branchId !== 'null' && req.query.branchId !== 'undefined') {
+                yardFilter = { yardId: new mongoose.Types.ObjectId(req.query.branchId) };
             }
         } else {
             yardFilter = { yardId: req.user.branchId };
         }
 
-        // For Vehicle count, field is yardId
         const totalInventory = await Vehicle.countDocuments({ status: 'PARKED', ...yardFilter });
         
-        // Get today's start and end
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         
-        const endOfDay = new Date();
-        endOfDay.setHours(23, 59, 59, 999);
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        // For EntryExitLog, field is yardId too
         const todayEntries = await EntryExitLog.countDocuments({
             type: 'ENTRY',
             timestamp: { $gte: startOfDay, $lte: endOfDay },
@@ -41,28 +38,26 @@ export const getDashboardStats = async (req, res) => {
             ...yardFilter
         });
 
-        // Calculate Revenue (Sum of paymentAmount for EXIT logs)
+        // Calculate Monthly Revenue
         const revenueStats = await EntryExitLog.aggregate([
             { 
                 $match: { 
                     type: 'EXIT', 
-                    timestamp: { $gte: startOfDay, $lte: endOfDay },
-                    ...yardFilter // Actually aggregation match needs check if yardFilter uses ObjectId
+                    timestamp: { $gte: startOfMonth },
+                    ...yardFilter
                 } 
             },
             {
                 $group: {
                     _id: null,
                     totalRevenue: { $sum: '$paymentAmount' },
-                    // Assuming 'fines' might be tracked separately or checking paymentRemarks?
-                    // For now, if no distinct field, just mock as 0 or derive if possible.
-                    // Let's assume remarks containing 'fine' is a fine (simple logic for now)
+                    totalFines: { $sum: { $cond: [{ $gt: ["$totalDays", 2] }, 100, 0] } } // Mock logic for fines: 100 if > 2 days
                 }
             }
         ]);
 
         const totalRevenue = revenueStats[0]?.totalRevenue || 0;
-        const totalFines = 0; // Placeholder until schema supports specific fine tracking
+        const totalFines = revenueStats[0]?.totalFines || 0;
 
         res.json({
             totalInventory,
@@ -102,59 +97,45 @@ export const getRecentActivity = async (req, res) => {
 // @access  Private
 export const getDashboardTrends = async (req, res) => {
     try {
-        let yardFilter = {};
-        if (req.user.role === 'SUPER_ADMIN' && req.query.branchId) yardFilter = { yardId: new Yard(req.query.branchId)._id }; // Aggregation might need ObjectId cast if raw
-        else if (req.user.role !== 'SUPER_ADMIN') yardFilter = { yardId: req.user.branchId }; // Mongoose handles this if not raw aggregation... wait, Aggregation needs explicit ObjectId
+        let branchId = null;
+        if (req.user.role === 'SUPER_ADMIN') {
+            if (req.query.branchId && req.query.branchId !== 'null' && req.query.branchId !== 'undefined') {
+                branchId = req.query.branchId;
+            }
+        } else {
+            branchId = req.user.branchId;
+        }
 
-        // Correction: req.user.branchId is likely an ObjectId if populated or string if not. 
-        // Safer to rely on Mongoose matching in $match which handles some casting, 
-        // BUT $match in aggregate pipeline often needs explicit ObjectId.
-        
-        // Let's keep it simple. If we need casting, import mongoose.
-        // For now, assuming yardId in Vehicle is ObjectId.
-        
-        // Simple way: construct match object
-        let matchStage = { status: 'PARKED' };
-        
-        // We need to import mongoose to cast if it's a string
-        // Since I can't easily add import top-level right now without another tool call, 
-        // I will assume Mongoose is imported as 'mongoose' in file or not. 
-        // Current file does NOT import mongoose. It imports models.
-        
-        // Wait, models export Mongoose model.
-        // I can just rely on the query param matching if I use standard find, but this is aggregate.
-        
-        // Let's skip explicit casting for a moment and hope Mongoose driver handles it or my seed data uses strings? No, ObjectIds.
-        // I will update the logic to strict check.
-        
-        // Actually, let's just do a find count instead of aggregate for now if casting is risky?
-        // No, aggregate is better. I should import mongoose at top if needed.
-        // Or I can use `req.user.branchId` which is an ObjectId.
-        
         const matchQuery = { status: 'PARKED' };
-        // NOTE: If passing string to $match against ObjectId, it FAILS. Needs ObjectId.
-        // SKIP implementing strict filtering in aggregation for this step to avoid crashing if I don't have ObjectId constructor.
-        // I will come back to fix imports if needed.
-        // Actually, let's assume filtering works for now or I'll fix it if it breaks.
-        // Re-reading file: `import Vehicle from ...`
-        
+        if (branchId) {
+            matchQuery.yardId = new mongoose.Types.ObjectId(branchId);
+        }
+
         const trends = await Vehicle.aggregate([
             { $match: matchQuery },
             {
                 $group: {
-                    _id: '$type', 
+                    _id: '$category', 
                     count: { $sum: 1 }
                 }
-            }
+            },
+            { $sort: { count: -1 } }
         ]);
         
-        // ... (rest of trends logic) ... 
-        const formattedTrends = trends.map(t => ({
+        const colors = [
+            'bg-[#98E2E1]', // Teal
+            'bg-[#F3C465]', // Yellow
+            'bg-[#FF6B6B]', // Red
+            'bg-[#4ECDC4]', // Green
+            'bg-[#A0ACE0]', // Purple
+        ];
+
+        const formattedTrends = trends.map((t, index) => ({
              name: t._id || 'Unknown',
              type: t._id || 'Unknown', 
              c: t.count,
-             t: Math.floor(Math.random() * 50), 
-             color: 'bg-[#98E2E1]'
+             t: Math.floor(Math.random() * 50), // Mock turnover for now
+             color: colors[index % colors.length]
          }));
 
         res.json(formattedTrends);
