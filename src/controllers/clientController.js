@@ -7,11 +7,10 @@ export const getClients = async (req, res) => {
     try {
         console.log("Fetching clients for user:", req.user._id, "Role:", req.user.role);
         let branchFilter = {};
-        if (req.user.role === 'SUPER_ADMIN') {
-            if (req.query.branchId) branchFilter = { branchId: req.query.branchId };
-        } else {
-            branchFilter = { branchId: req.user.branchId };
+        if (req.query.branchId) {
+            branchFilter = { branchId: req.query.branchId };
         }
+        // Removed mandatory branch filtering for GATE_STAFF/BRANCH_MANAGER
 
         console.log("Executing query with filter:", branchFilter);
         const clients = await Client.find(branchFilter)

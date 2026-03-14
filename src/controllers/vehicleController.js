@@ -23,32 +23,33 @@ export const getVehicles = async (req, res) => {
         const pageSize = 10;
         const page = Number(req.query.pageNumber) || 1;
 
-        const keyword = req.query.keyword
-            ? {
-                  $or: [
-                      { licensePlate: { $regex: req.query.keyword, $options: 'i' } },
-                      { make: { $regex: req.query.keyword, $options: 'i' } },
-                      { model: { $regex: req.query.keyword, $options: 'i' } }
-                  ],
-              }
-            : {};
+        let searchKeyword = {};
+        if (req.query.keyword) {
+            const keyword = req.query.keyword.trim();
+            // Create a space-agnostic regex for the license plate
+            // e.g. "MP 09" becomes "M\s*P\s*0\s*9" which matches "MP09" or "MP 09"
+            const plateRegex = keyword.replace(/\s+/g, '').split('').join('\\s*');
+            
+            searchKeyword = {
+                $or: [
+                    { licensePlate: { $regex: plateRegex, $options: 'i' } },
+                    { make: { $regex: keyword, $options: 'i' } },
+                    { model: { $regex: keyword, $options: 'i' } }
+                ],
+            };
+        }
         
         // Filter by Status if provided
         const statusFilter = req.query.status ? { status: req.query.status } : {};
 
-        // Filter by Branch/Yard
+        // Filter by Branch/Yard (Allow cross-branch access as requested)
         let yardFilter = {};
-        if (req.user.role === 'SUPER_ADMIN') {
-            if (req.query.branchId) {
-                yardFilter = { yardId: req.query.branchId };
-            }
-        } else {
-            // For non-admins, force their assigned branch
-            yardFilter = { yardId: req.user.branchId };
+        if (req.query.branchId) {
+            yardFilter = { yardId: req.query.branchId };
         }
 
-        const count = await Vehicle.countDocuments({ ...keyword, ...statusFilter, ...yardFilter });
-        const vehicles = await Vehicle.find({ ...keyword, ...statusFilter, ...yardFilter })
+        const count = await Vehicle.countDocuments({ ...searchKeyword, ...statusFilter, ...yardFilter });
+        const vehicles = await Vehicle.find({ ...searchKeyword, ...statusFilter, ...yardFilter })
             .populate('yardId', 'name city')
             .limit(pageSize)
             .skip(pageSize * (page - 1))
@@ -370,9 +371,7 @@ export const getEntryExitStats = async (req, res) => {
         // Note: yardId filter is already in 'query' for Logs, but Vehicle model uses 'yardId' too.
         // We need to use valid Vehicle filters. 'query.yardId' is suitable.
         const vehicleQuery = { status: 'PARKED' };
-        if (req.user.role !== 'SUPER_ADMIN') {
-            vehicleQuery.yardId = req.user.branchId;
-        } else if (req.query.branchId) {
+        if (req.query.branchId) {
             vehicleQuery.yardId = req.query.branchId;
         }
 
