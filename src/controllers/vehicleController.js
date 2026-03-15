@@ -106,7 +106,9 @@ export const registerVehicleEntry = async (req, res) => {
         photos, // { front, back, chassisTwo, rightTyres... }
         // 10. Damages
         damages,
-        damageReport
+        damageReport,
+        // 11. Entry Date (user-selected, supports back-dating)
+        entryDate
     } = req.body;
 
     // Start a session for transaction - REMOVED for standalone support
@@ -136,7 +138,7 @@ export const registerVehicleEntry = async (req, res) => {
             licensePlate, make, model, variant, manufacturingYear, category, color, vin, engineNumber, chassisNumber,
             client: resolvedClientName, contractNumber, borrowerName, borrowerAddress, customerContactNumber, paymentStatus,
             repoAgent, repoType, bankName, repoDate, repAgencyDetails, inHouseAgent, agentProof, proofNumber, inventoryOwner,
-            yardId: yardId || req.user.branchId, status: 'PARKED', entryDate: Date.now(), entryBy: req.user._id, isYardTransfer,
+            yardId: yardId || req.user.branchId, status: 'PARKED', entryDate: entryDate ? new Date(entryDate) : Date.now(), entryBy: req.user._id, isYardTransfer,
             condition, accessories, tyreDetails, keyInventory, photos, damages, damageReport
         };
 
