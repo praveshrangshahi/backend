@@ -183,7 +183,8 @@ export const processVehicleExit = async (req, res) => {
     const {
         customerName, customerContactNumber, paymentMode, paymentAmount, 
         paymentScreenshot, paymentRemarks, exitPhoto1, exitPhoto2, 
-        releaseLetter, totalDays, rentPerDay, isYardTransfer
+        releaseLetter, releaseAadharPhoto, releaseVideo, exitNote,
+        totalDays, rentPerDay, isYardTransfer
     } = req.body;
 
     // Transactions removed to support standalone MongoDB instances
@@ -215,9 +216,13 @@ export const processVehicleExit = async (req, res) => {
             paymentAmount,
             paymentScreenshot,
             paymentRemarks,
+            releasePhoto: exitPhoto1, // Mapping for backward compatibility if needed, but keeping original ones
             exitPhoto1,
             exitPhoto2,
             releaseLetter,
+            releaseAadharPhoto,
+            releaseVideo,
+            exitNote,
             totalDays,
             rentPerDay,
             isYardTransfer: isYardTransfer || false,

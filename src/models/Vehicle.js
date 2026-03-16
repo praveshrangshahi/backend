@@ -143,6 +143,7 @@ const vehicleSchema = new mongoose.Schema({
 
     // --- 9. Documentation Images & Proofs ---
     photos: {
+        vehicle: String, // [NEW] Number Plate Image
         front: String,
         back: String,
         left: String,
