@@ -18,6 +18,8 @@ const vehicleSchema = new mongoose.Schema({
     vin: String, // Vehicle Identification Number
     engineNumber: String,
     chassisNumber: String,
+    plateCondition: String, // [NEW]
+    actualRcNumber: String, // [NEW]
 
     // --- 2. Contract & Borrower Info ---
     client: { type: String, required: true }, // Client Name
@@ -25,6 +27,7 @@ const vehicleSchema = new mongoose.Schema({
     borrowerName: String,
     borrowerAddress: String,
     customerContactNumber: String,
+    vehicleState: String, // [NEW]
     paymentStatus: String, // e.g., 'NPA', 'Regular'
 
     // --- 3. Repossession Details ---
@@ -66,7 +69,7 @@ const vehicleSchema = new mongoose.Schema({
         taillights: String,
         mirrors: String,
         windshield: String,
-        suspsension: String,
+        suspension: String,
         brakes: String,
         ac: String,
         engineSound: String
@@ -82,14 +85,22 @@ const vehicleSchema = new mongoose.Schema({
         
         duplicateKeys: { type: Boolean, default: false },
         originalKeys: { type: Boolean, default: false },
+        keys: { type: Boolean, default: false }, // [NEW] generic key available
         battery: { type: Boolean, default: false },
         jack: { type: Boolean, default: false },
-        toolKit: { type: Boolean, default: false },
-        wheelSpanner: { type: Boolean, default: false }, // [NEW]
+        toolkit: { type: Boolean, default: false },
+        wheelSpanners: { type: Boolean, default: false }, // [FIX] Plural to match Service
         spareWheel: { type: Boolean, default: false },
         stereo: { type: Boolean, default: false },
+        speakers: { type: Boolean, default: false }, // [NEW]
+        clock: { type: Boolean, default: false }, // [NEW]
         ac: { type: Boolean, default: false },
-        sideMirrors: { type: Boolean, default: false },
+        mirrors: { // [FIX] Object for more detail
+            left: { type: Boolean, default: false },
+            right: { type: Boolean, default: false },
+            rearView: { type: Boolean, default: false }
+        },
+        sideMirrors: { type: Boolean, default: false }, // [LEGACY]
         seatCovers: { type: Boolean, default: false },
         mats: { type: Boolean, default: false },
         fogLamps: { type: Boolean, default: false },
@@ -98,7 +109,8 @@ const vehicleSchema = new mongoose.Schema({
         // Heavy Vehicle Items
         tami: { type: Boolean, default: false },
         tirpal: { type: Boolean, default: false },
-        rassi: { type: Boolean, default: false }
+        rassi: { type: Boolean, default: false },
+        cargo: { type: Boolean, default: false } // [NEW] from preview
     },
 
     // --- 7. Tyre Details ---
@@ -118,6 +130,7 @@ const vehicleSchema = new mongoose.Schema({
         rearLeftMake: String,
         rearRight2: String,
         rearLeft2: String,
+        spareTyre: { type: Boolean, default: false }, // [NEW]
         stepneyCondition: String,
         stepneyMake: String
     },
@@ -137,6 +150,8 @@ const vehicleSchema = new mongoose.Schema({
         interior: String,
         dashboard: String,
         odometer: String,
+        frontTyre: String, // [NEW]
+        backTyre: String, // [NEW]
         chassis: String,
         chassisTwo: String, // [NEW]
         engine: String,

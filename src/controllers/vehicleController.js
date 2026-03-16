@@ -88,8 +88,9 @@ export const registerVehicleEntry = async (req, res) => {
     const {
         // 1. Basic
         licensePlate, make, model, variant, manufacturingYear, category, color, vin, engineNumber, chassisNumber,
+        plateCondition, actualRcNumber, // [NEW]
         // 2. Contract
-        client, contractNumber, borrowerName, borrowerAddress, customerContactNumber, paymentStatus,
+        client, contractNumber, borrowerName, borrowerAddress, customerContactNumber, vehicleState, paymentStatus,
         // 3. Repo
         repoAgent, repoType, bankName, repoDate, repAgencyDetails, inHouseAgent, agentProof, proofNumber, inventoryOwner,
         // 4. Yard
@@ -103,7 +104,7 @@ export const registerVehicleEntry = async (req, res) => {
         // 8. Keys
         keyInventory,
         // 9. Photos
-        photos, // { front, back, chassisTwo, rightTyres... }
+        photos, // { front, back, chassisTwo, rightTyres, interior, frontTyre, backTyre... }
         // 10. Damages
         damages,
         damageReport,
@@ -136,7 +137,8 @@ export const registerVehicleEntry = async (req, res) => {
 
         const vehicleData = {
             licensePlate, make, model, variant, manufacturingYear, category, color, vin, engineNumber, chassisNumber,
-            client: resolvedClientName, contractNumber, borrowerName, borrowerAddress, customerContactNumber, paymentStatus,
+            plateCondition, actualRcNumber, // [NEW]
+            client: resolvedClientName, contractNumber, borrowerName, borrowerAddress, customerContactNumber, vehicleState, paymentStatus,
             repoAgent, repoType, bankName, repoDate, repAgencyDetails, inHouseAgent, agentProof, proofNumber, inventoryOwner,
             yardId: yardId || req.user.branchId, status: 'PARKED', entryDate: entryDate ? new Date(entryDate) : Date.now(), entryBy: req.user._id, isYardTransfer,
             condition, accessories, tyreDetails, keyInventory, photos, damages, damageReport
